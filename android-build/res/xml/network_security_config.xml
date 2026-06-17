@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- Autoriser les appels HTTPS vers l'API Anthropic et Google Fonts -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.anthropic.com</domain>
+        <domain includeSubdomains="true">fonts.googleapis.com</domain>
+        <domain includeSubdomains="true">fonts.gstatic.com</domain>
+    </domain-config>
+</network-security-config>
