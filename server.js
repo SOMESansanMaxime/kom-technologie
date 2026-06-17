@@ -154,6 +154,71 @@ Si l'image ne montre pas d'engin de chantier, mets identified: false.`;
   }
 });
 
+// ─── Analyse complète par IA (pour EnginScan React) ─────────────────────────
+// Retourne le JSON structuré attendu par le composant React EnginScan.jsx
+const FULL_PROMPT = `Tu es un ingénieur expert en matériel de travaux publics et en infrastructures routières (contexte Afrique de l'Ouest — coûts en FCFA).
+Analyse l'engin ou le matériel de chantier visible sur la photo. Identifie précisément le type d'engin (terrassement, compactage, revêtement, transport, levage, forage, etc.).
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans préambule, sans texte autour, sans balises Markdown. Structure exacte :
+{
+  "engin": "nom précis de l'engin identifié",
+  "confiance": "élevée | moyenne | faible",
+  "categorie": "famille d'engins",
+  "modeles_courants": "marques et modèles typiques séparés par des virgules",
+  "caracteristiques": ["caractéristique technique chiffrée avec unités", "..."],
+  "performances": ["performance chiffrée avec unités et conditions", "..."],
+  "consommation": ["consommation carburant en L/h avec fourchette selon intensité", "..."],
+  "rendements": ["rendement de production chiffré avec unités (ex: m³/h, m²/h, km/j)", "..."],
+  "conditions_emploi": ["conseil d'emploi ou contrainte opérationnelle", "..."],
+  "conso_estimee_lh": 25,
+  "rendement_estime": {"valeur": 80, "unite": "m³/h"}
+}
+Donne des valeurs chiffrées réalistes avec unités. Chaque liste contient 3 à 6 éléments.
+"conso_estimee_lh" = consommation moyenne probable en L/h (nombre seul, sans unité).
+"rendement_estime" = rendement de production moyen probable (nombre + unité).
+Si ce n'est pas un engin de chantier, mets "engin": "Non identifié comme engin de chantier" et "confiance": "faible".`;
+
+app.post('/api/analyze-full', async (req, res) => {
+  const { image, media_type } = req.body;
+
+  if (!image) return res.status(400).json({ error: 'Image manquante' });
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({
+      error: 'API non configurée',
+      message: 'Ajoutez ANTHROPIC_API_KEY dans le fichier .env'
+    });
+  }
+
+  try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1600,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: media_type || 'image/jpeg', data: image } },
+          { type: 'text', text: FULL_PROMPT }
+        ]
+      }]
+    });
+
+    const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
+      .replace(/```json|```/g, '').trim();
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const result = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+    res.json(result);
+
+  } catch (err) {
+    console.error('Erreur /api/analyze-full:', err.message);
+    if (err.status === 401) return res.status(401).json({ error: 'Clé API invalide', message: err.message });
+    if (err.status === 429) return res.status(429).json({ error: 'Quota dépassé', message: 'Réessayez dans quelques instants' });
+    res.status(500).json({ error: 'Erreur analyse', message: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n🚧 KOM Technologie — Analyseur d'Engins BTP`);
   console.log(`   Serveur actif sur http://localhost:${PORT}`);
