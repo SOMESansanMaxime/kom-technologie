@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyseur d'Engins BTP | KOM Technologie — SOMAC BTP</title>
+  <meta name="description" content="Identifiez les engins de chantier par photo et consultez leurs caractéristiques, performances, consommations et rendements pour les travaux d'infrastructures routières.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/analyseur.css">
+  <style>
+    /* Overrides mineurs pour cohérence header/footer avec index.html */
+    .header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(26,43,74,0.97); backdrop-filter: blur(10px); transition: all 0.3s; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status-online { background: #22C55E; box-shadow: 0 0 6px #22C55E; }
+    .status-warning { background: #F59E0B; }
+    .status-offline { background: #EF4444; }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     HEADER (identique à index.html)
+════════════════════════════════════════════════════ -->
+<header class="header" id="header">
+  <div class="container nav-container">
+    <a href="index.html" class="logo">
+      <span class="logo-icon">S</span>
+      <div>
+        <span class="logo-name">SOMAC BTP</span>
+        <span class="logo-tagline">KOM Technologie</span>
+      </div>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="index.html#accueil" class="nav-link">Accueil</a>
+      <a href="index.html#a-propos" class="nav-link">À propos</a>
+      <a href="index.html#services" class="nav-link">Services</a>
+      <a href="index.html#realisations" class="nav-link">Réalisations</a>
+      <a href="analyseur.html" class="nav-link active" style="color:#E8680A">🔍 Analyseur</a>
+      <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
+    </nav>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  </nav>
+</header>
+
+<!-- ═══════════════════════════════════════════════════
+     HERO ANALYSEUR
+════════════════════════════════════════════════════ -->
+<section class="analyseur-hero">
+  <div class="container">
+    <div class="analyseur-hero-content">
+      <div class="badge-hero">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+          <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Outil d'Analyse IA
+      </div>
+
+      <h1>Analyseur d'Engins<br><span>d'Infrastructures Routières</span></h1>
+
+      <p>
+        Identifiez un engin par photo ou consultez directement notre base de données —
+        caractéristiques, performances, consommations et rendements pour chaque matériel.
+      </p>
+
+      <!-- Indicateur état API -->
+      <div style="display:inline-flex;align-items:center;background:rgba(255,255,255,0.1);
+                  border-radius:50px;padding:8px 18px;font-size:0.82rem;color:rgba(255,255,255,0.8);
+                  margin-bottom:32px;">
+        <span class="status-dot status-offline" id="api-status-dot"></span>
+        <span id="api-status-text">Connexion en cours...</span>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="stat-number">20+</span>
+          <span class="stat-label">Types d'engins</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-number">7</span>
+          <span class="stat-label">Catégories</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-number">100+</span>
+          <span class="stat-label">Paramètres techniques</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-number">IA</span>
+          <span class="stat-label">Analyse photo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION PRINCIPALE
+════════════════════════════════════════════════════ -->
+<section class="analyseur-main">
+  <div class="container">
+
+    <!-- Sélecteur de mode -->
+    <div class="mode-selector">
+      <button class="mode-btn active" id="mode-photo-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Analyser une photo
+      </button>
+      <button class="mode-btn" id="mode-manual-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Consulter la base
+      </button>
+    </div>
+
+    <!-- ── Mode Photo ───────────────────────────────── -->
+    <div id="upload-section">
+      <!-- Zone de dépôt -->
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/*">
+        <div class="upload-icon">📸</div>
+        <h3>Déposez ou sélectionnez une photo d'engin</h3>
+        <p>Glissez-déposez une image ou cliquez pour parcourir vos fichiers</p>
+        <div class="btn-upload">Choisir une image</div>
+        <div class="upload-formats">JPG · PNG · WEBP · GIF — Max 8 Mo</div>
+      </div>
+
+      <!-- Prévisualisation -->
+      <div class="image-preview" id="image-preview">
+        <div class="preview-header">
+          <h4>📷 Image sélectionnée</h4>
+          <button class="btn-change" id="btn-change">Changer l'image</button>
+        </div>
+        <div class="preview-image-wrap">
+          <img id="preview-img" src="" alt="Aperçu de l'engin">
+        </div>
+      </div>
+
+      <!-- Bouton analyser -->
+      <button class="btn-analyze" id="analyze-btn" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        Analyser avec l'IA
+      </button>
+    </div>
+
+    <!-- ── Mode Manuel ──────────────────────────────── -->
+    <div class="manual-select-zone" id="manual-section">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Rechercher un engin (bulldozer, niveleuse, pelle...)">
+      </div>
+      <div class="category-filter" id="category-filter"></div>
+      <div class="equipment-grid" id="equipment-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:32px;color:#888">
+          Chargement des engins...
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Chargement ───────────────────────────────── -->
+    <div class="loading-state" id="loading-state">
+      <div class="spinner"></div>
+      <h3>Analyse en cours...</h3>
+      <p>L'IA analyse votre image et recherche l'engin dans la base de données</p>
+    </div>
+
+    <!-- ── Résultats ────────────────────────────────── -->
+    <div id="results-section">
+      <!-- En-tête résultat -->
+      <div class="result-header">
+        <div class="result-icon" id="result-icon">🚧</div>
+        <div class="result-header-info">
+          <h2 id="result-name">Nom de l'engin</h2>
+          <div class="result-meta">
+            <span class="badge badge-orange" id="result-cat">Catégorie</span>
+            <span class="badge badge-navy" id="result-confidence" style="display:none"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-description" id="result-description" style="margin:0;border-radius:0;padding:18px 32px;background:rgba(255,255,255,0.08)">
+        Description de l'engin
+      </div>
+      <div class="result-models" id="result-models" style="margin:0;border-radius:0;padding:12px 32px;background:rgba(255,255,255,0.05)">
+      </div>
+
+      <!-- Onglets de données -->
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="caracteristiques">
+            ⚙️ Caractéristiques
+          </button>
+          <button class="tab-btn" data-tab="performances">
+            📈 Performances
+          </button>
+          <button class="tab-btn" data-tab="consommations">
+            ⛽ Consommations
+          </button>
+          <button class="tab-btn" data-tab="rendements">
+            🏭 Rendements
+          </button>
+          <button class="tab-btn" data-tab="applications">
+            🛣️ Applications
+          </button>
+        </div>
+
+        <div class="tab-content active" id="tab-caracteristiques">
+          <p style="color:#888;text-align:center;padding:32px">Sélectionnez ou analysez un engin pour voir ses données.</p>
+        </div>
+
+        <div class="tab-content" id="tab-performances">
+          <p style="color:#888;text-align:center;padding:32px">Sélectionnez ou analysez un engin pour voir ses données.</p>
+        </div>
+
+        <div class="tab-content" id="tab-consommations">
+          <p style="color:#888;text-align:center;padding:32px">Sélectionnez ou analysez un engin pour voir ses données.</p>
+        </div>
+
+        <div class="tab-content" id="tab-rendements">
+          <p style="color:#888;text-align:center;padding:32px">Sélectionnez ou analysez un engin pour voir ses données.</p>
+        </div>
+
+        <div class="tab-content" id="tab-applications">
+          <p style="color:#888;text-align:center;padding:32px">Sélectionnez ou analysez un engin pour voir ses données.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION — BASE DE DONNÉES
+════════════════════════════════════════════════════ -->
+<section class="db-info-section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:40px">
+      <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;color:#1A2B4A;margin-bottom:12px">
+        Base de Données Technique
+      </h2>
+      <p style="color:#6B7280;max-width:500px;margin:0 auto;font-size:1rem">
+        Données issues des fiches constructeurs (Caterpillar, Komatsu, Volvo, etc.)
+        adaptées au contexte des chantiers en Afrique de l'Ouest.
+      </p>
+    </div>
+
+    <div class="db-grid">
+      <div class="db-card">
+        <span class="db-icon">🏗️</span>
+        <div class="db-count">4</div>
+        <div class="db-label">Engins de terrassement</div>
+      </div>
+      <div class="db-card">
+        <span class="db-icon">⛏️</span>
+        <div class="db-count">4</div>
+        <div class="db-label">Extraction & Chargement</div>
+      </div>
+      <div class="db-card">
+        <span class="db-icon">🔄</span>
+        <div class="db-count">3</div>
+        <div class="db-label">Compactage</div>
+      </div>
+      <div class="db-card">
+        <span class="db-icon">🚛</span>
+        <div class="db-count">2</div>
+        <div class="db-label">Transport</div>
+      </div>
+      <div class="db-card">
+        <span class="db-icon">🛣️</span>
+        <div class="db-count">3</div>
+        <div class="db-label">Revêtement bitumineux</div>
+      </div>
+      <div class="db-card">
+        <span class="db-icon">🪨</span>
+        <div class="db-count">1</div>
+        <div class="db-label">Concassage</div>
+      </div>
+      <div class="db-card">
+        <span class="db-icon">🔧</span>
+        <div class="db-count">2</div>
+        <div class="db-label">Matériel divers</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION — GUIDE D'UTILISATION
+════════════════════════════════════════════════════ -->
+<section style="padding:60px 0;background:#F8F9FA">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:40px">
+      <h2 style="font-size:clamp(1.4rem,3vw,2rem);font-weight:800;color:#1A2B4A;margin-bottom:10px">
+        Comment utiliser l'analyseur ?
+      </h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px">
+      <div style="background:white;border-radius:12px;padding:28px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+        <div style="font-size:2.2rem;margin-bottom:14px">📸</div>
+        <h3 style="font-weight:700;color:#1A2B4A;margin-bottom:8px;font-size:1rem">1. Charger une photo</h3>
+        <p style="color:#6B7280;font-size:0.86rem;line-height:1.5">
+          Prenez ou sélectionnez une photo de l'engin de chantier que vous souhaitez analyser.
+        </p>
+      </div>
+
+      <div style="background:white;border-radius:12px;padding:28px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+        <div style="font-size:2.2rem;margin-bottom:14px">🤖</div>
+        <h3 style="font-weight:700;color:#1A2B4A;margin-bottom:8px;font-size:1rem">2. Analyse IA</h3>
+        <p style="color:#6B7280;font-size:0.86rem;line-height:1.5">
+          L'intelligence artificielle identifie l'engin et le recherche automatiquement dans la base.
+        </p>
+      </div>
+
+      <div style="background:white;border-radius:12px;padding:28px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+        <div style="font-size:2.2rem;margin-bottom:14px">📊</div>
+        <h3 style="font-weight:700;color:#1A2B4A;margin-bottom:8px;font-size:1rem">3. Données complètes</h3>
+        <p style="color:#6B7280;font-size:0.86rem;line-height:1.5">
+          Consultez les caractéristiques, performances, consommations et rendements détaillés.
+        </p>
+      </div>
+
+      <div style="background:white;border-radius:12px;padding:28px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+        <div style="font-size:2.2rem;margin-bottom:14px">📋</div>
+        <h3 style="font-weight:700;color:#1A2B4A;margin-bottom:8px;font-size:1rem">4. Mode consultation</h3>
+        <p style="color:#6B7280;font-size:0.86rem;line-height:1.5">
+          Parcourez directement la base de données par catégorie ou recherche textuelle.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <div class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M3 21V8L12 3L21 8V21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 21V14H15V21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>SOMAC BTP</span>
+        </div>
+        <p>Entreprise de Construction et Travaux Publics au Burkina Faso. Excellence, Innovation, Qualité.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="Facebook">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+            </svg>
+          </a>
+          <a href="#" aria-label="LinkedIn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/>
+              <circle cx="4" cy="4" r="2"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-nav">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="index.html#accueil">Accueil</a></li>
+          <li><a href="index.html#services">Services</a></li>
+          <li><a href="index.html#realisations">Réalisations</a></li>
+          <li><a href="analyseur.html">Analyseur Engins</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-services">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="#">Construction de bâtiments</a></li>
+          <li><a href="#">Génie civil</a></li>
+          <li><a href="#">Routes & pistes</a></li>
+          <li><a href="#">Hydraulique</a></li>
+          <li><a href="#">Réhabilitation</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-contact">
+        <h4>Contact</h4>
+        <div class="contact-info">
+          <div class="contact-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            Ouagadougou, Burkina Faso
+          </div>
+          <div class="contact-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            +226 XX XX XX XX
+          </div>
+          <div class="contact-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            contact@somacbtp.bf
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 SOMAC BTP — Tous droits réservés | Développé par <strong>KOM Technologie</strong></p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/analyseur.js"></script>
+</body>
+</html>
