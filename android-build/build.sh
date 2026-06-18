@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build script — EnginScan BTP APK
-# Prérequis : android-sdk, build-tools 29.0.3, platform android-23, Java 21
+# Prérequis : android-sdk, build-tools 29.0.3, platform android-23, Java 8+
+# Compatible Android 5.0+ (API 21) → Android 14 (API 34)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,10 +21,10 @@ echo "════════════════════════�
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR/gen" "$BUILD_DIR/classes" "$BUILD_DIR/dex"
 
-# ─── Icône ──────────────────────────────────────────────────────────────────
-echo "📱  Génération icône..."
+# ─── Icônes toutes densités ──────────────────────────────────────────────────
+echo "📱  Génération icônes (toutes densités)..."
 python3 - <<'PYEOF'
-import struct, zlib, os
+import struct, zlib, os, math
 
 def make_png(w, h, pixels):
     def chunk(ct, data):
@@ -35,23 +36,41 @@ def make_png(w, h, pixels):
             + chunk(b'IDAT', zlib.compress(raw))
             + chunk(b'IEND', b''))
 
-W, H = 48, 48
-BG = (180, 54, 14)    # #B4541E laterite
-FG = (237, 230, 214)  # #EDE6D6 crème
-rows = [[BG]*W for _ in range(H)]
-# Lettre "E" stylisée
-for y in range(8, 40):
-    for x in range(8, 14): rows[y][x] = FG
-for y in range(8, 14):
-    for x in range(8, 40): rows[y][x] = FG
-for y in range(21, 27):
-    for x in range(8, 35): rows[y][x] = FG
-for y in range(34, 40):
-    for x in range(8, 40): rows[y][x] = FG
-os.makedirs('res/mipmap-hdpi', exist_ok=True)
-with open('res/mipmap-hdpi/ic_launcher.png', 'wb') as f:
-    f.write(make_png(W, H, rows))
-print("  ✓ ic_launcher.png 48×48 créé")
+def draw_icon(W, H):
+    BG = (180, 54, 14)    # #B4541E laterite
+    FG = (237, 230, 214)  # #EDE6D6 crème
+    rows = [[BG]*W for _ in range(H)]
+    # Colonne verticale gauche du E (10-17% de la largeur)
+    x0, x1 = round(W*0.10), round(W*0.27)
+    for y in range(round(H*0.15), round(H*0.85)):
+        for x in range(x0, x1): rows[y][x] = FG
+    # Barre haute
+    for y in range(round(H*0.15), round(H*0.30)):
+        for x in range(x0, round(W*0.85)): rows[y][x] = FG
+    # Barre milieu
+    for y in range(round(H*0.44), round(H*0.58)):
+        for x in range(x0, round(W*0.72)): rows[y][x] = FG
+    # Barre basse
+    for y in range(round(H*0.70), round(H*0.85)):
+        for x in range(x0, round(W*0.85)): rows[y][x] = FG
+    return rows
+
+# Densités Android : (dossier, taille en dp×dp)
+DENSITIES = [
+    ('mipmap-mdpi',    48),
+    ('mipmap-hdpi',    72),
+    ('mipmap-xhdpi',   96),
+    ('mipmap-xxhdpi',  144),
+    ('mipmap-xxxhdpi', 192),
+]
+
+for folder, size in DENSITIES:
+    os.makedirs(f'res/{folder}', exist_ok=True)
+    rows = draw_icon(size, size)
+    path = f'res/{folder}/ic_launcher.png'
+    with open(path, 'wb') as f:
+        f.write(make_png(size, size, rows))
+    print(f"  ✓ {folder}/ic_launcher.png {size}×{size}")
 PYEOF
 
 # ─── Compilation ressources ──────────────────────────────────────────────────
